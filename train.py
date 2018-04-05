@@ -1,5 +1,6 @@
 from keras.preprocessing.image import ImageDataGenerator
 from keras.optimizers import Adam
+from keras.models import load_model
 from sklearn.model_selection import train_test_split
 from keras.preprocessing.image import img_to_array
 from keras.utils import to_categorical
@@ -18,7 +19,7 @@ ap.add_argument("-m", "--model", required=True,
         help="path to output model folder")
 args = vars(ap.parse_args())
 
-EPOCHS = 2
+EPOCHS = 25
 INIT_LR = 1e-3
 BS = 32
 
@@ -26,27 +27,38 @@ def train(dataset):
     print("[INFO] loading images in "+dataset+"...")
     data = []
     labels = []
-    labellist = os.listdir(dataset)
+    labellist=[]
+    for item in os.scandir(dataset):
+        if item.is_dir():
+            labellist.append(item.name)
     labellist.sort()
-    imagePaths = sorted(list(paths.list_images(dataset)))
+    imagePaths=[]
+    #imagePaths = sorted(list(paths.list_images(dataset)))
+    for direc in os.listdir(dataset):
+        i=0
+        for item in os.scandir(dataset+os.path.sep+direc):
+            if item.is_file():
+                i=i+1
+                imagePaths.append(item.path)
+        print(direc)
+        print(i)
     random.seed(42)
     random.shuffle(imagePaths)
     for imagePath in imagePaths:
-        image = cv2.imread(imagePath)
-        image = cv2.resize(image, (64, 64))
-        image = img_to_array(image)
-        data.append(image)
-
-        #label = imagePath.split(os.path.sep)[-2]
-        label = imagePath.split(dataset)[1].split(os.path.sep)[1]
-        print(imagePath)
-        print(label)
-        print(labellist)
-        for (i, labelname) in enumerate(labellist):
-                if label == labelname:
-                        labelnum = i
-                        break
-        labels.append(labelnum)
+        label = imagePath.split(dataset)[1].split(os.path.sep)
+        if (len(label)>2):
+            image = cv2.imread(imagePath)
+            image = cv2.resize(image, (64, 64))
+            image = img_to_array(image)
+            data.append(image)
+            #print(imagePath)
+            #print(label)
+            #print(labellist)
+            for (i, labelname) in enumerate(labellist):
+                    if label[1] == labelname:
+                            labelnum = i
+                            break
+            labels.append(labelnum)
         
     data = np.array(data, dtype="float") / 255.0
     labels = np.array(labels)
